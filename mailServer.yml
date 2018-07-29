@@ -1,0 +1,82 @@
+---
+- name: Mail-Server Installation & Configuration
+  hosts: zabbix
+  gather_facts: true
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Updating Ubuntu/Debian Packages
+      apt: 
+        update_cache: yes
+      ignore_errors: true
+
+    - name: Install Apache2
+      apt: 
+        name: apache2
+        state: present
+      notify:
+      - restart apache
+
+    - name: Install php5
+      apt:
+        name: php5
+        state: present 
+      ignore_errors: true
+
+    - name: Install Postfix
+      apt:
+        name: postfix
+        state: present
+      notify:
+      - restart postfix
+
+    - name: postfix main config
+      template: dest=/etc/postfix/main.cf src=templates/main.cf.j2
+      notify:
+      - restart postfix
+
+    - name: dovecot-imapd Install
+      apt:
+        name: dovecot-imapd
+        state: present
+
+    - name: dovecot-pop3d Install
+      apt:
+        name: dovecot-pop3d
+        state: present
+      notify:
+      - restart dovecot
+
+    - name: squirrelmail Install
+      apt:
+        name: squirrelmail
+        state: present
+
+    - name: Squirrelmail Configuration file
+      template: dest=/etc/squirrelmail/config.php src=templates/config.php.j2
+
+    - name: Squirrelmail Web Configuration
+      copy: 
+        src: files/apache.conf 
+        dest: /etc/apache2/sites-available/squirrelmail.conf
+      notify:
+      - restart apache
+        
+#################Handlers#################            
+  handlers:
+    - name: restart postfix
+      service:
+        name: postfix
+        state: restarted
+    
+    - name: restart dovecot
+      service:
+        name: dovecot
+        state: restarted
+
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted
+
